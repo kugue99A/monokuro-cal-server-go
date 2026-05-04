@@ -17,6 +17,7 @@ func NewUsecase(repo domain.Repository) *Usecase {
 }
 
 type CreateInput struct {
+	UserID      uuid.UUID
 	Title       string
 	Description string
 	StartAt     time.Time
@@ -34,12 +35,12 @@ func (u *Usecase) GetEvent(ctx context.Context, id uuid.UUID) (*domain.Event, er
 	return u.repo.FindByID(ctx, id)
 }
 
-func (u *Usecase) ListEvents(ctx context.Context) ([]*domain.Event, error) {
-	return u.repo.FindAll(ctx)
+func (u *Usecase) ListEventsByUser(ctx context.Context, userID uuid.UUID) ([]*domain.Event, error) {
+	return u.repo.FindAllByUser(ctx, userID)
 }
 
 func (u *Usecase) CreateEvent(ctx context.Context, in CreateInput) (*domain.Event, error) {
-	ev, err := domain.New(in.Title, in.Description, in.StartAt, in.EndAt)
+	ev, err := domain.New(in.UserID, in.Title, in.Description, in.StartAt, in.EndAt)
 	if err != nil {
 		return nil, err
 	}

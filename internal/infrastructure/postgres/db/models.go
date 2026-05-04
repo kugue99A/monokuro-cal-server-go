@@ -17,4 +17,13 @@ type Event struct {
 	EndAt       pgtype.Timestamptz `json:"end_at"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	UserID      uuid.UUID          `json:"user_id"`
+}
+
+type User struct {
+	ID        uuid.UUID          `json:"id"`
+	Email     string             `json:"email"`
+	Name      string             `json:"name"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }

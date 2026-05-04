@@ -8,6 +8,7 @@ import (
 
 type Event struct {
 	ID          uuid.UUID
+	UserID      uuid.UUID
 	Title       string
 	Description string
 	StartAt     time.Time
@@ -16,7 +17,7 @@ type Event struct {
 	UpdatedAt   time.Time
 }
 
-func New(title, description string, startAt, endAt time.Time) (*Event, error) {
+func New(userID uuid.UUID, title, description string, startAt, endAt time.Time) (*Event, error) {
 	if title == "" {
 		return nil, ErrEmptyTitle
 	}
@@ -26,6 +27,7 @@ func New(title, description string, startAt, endAt time.Time) (*Event, error) {
 	now := time.Now()
 	return &Event{
 		ID:          uuid.New(),
+		UserID:      userID,
 		Title:       title,
 		Description: description,
 		StartAt:     startAt,

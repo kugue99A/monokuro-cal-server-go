@@ -11,11 +11,16 @@ import (
 )
 
 type Querier interface {
-	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
+	CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteEvent(ctx context.Context, id uuid.UUID) error
-	GetEvent(ctx context.Context, id uuid.UUID) (Event, error)
-	ListEvents(ctx context.Context) ([]Event, error)
-	UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
+	GetEvent(ctx context.Context, id uuid.UUID) (GetEventRow, error)
+	GetUser(ctx context.Context, id uuid.UUID) (User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
+	ListEventsByUser(ctx context.Context, userID uuid.UUID) ([]ListEventsByUserRow, error)
+	UpdateEvent(ctx context.Context, arg UpdateEventParams) (UpdateEventRow, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

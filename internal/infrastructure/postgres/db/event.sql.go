@@ -13,30 +13,44 @@ import (
 )
 
 const createEvent = `-- name: CreateEvent :one
-INSERT INTO events (id, title, description, start_at, end_at)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, title, description, start_at, end_at, created_at, updated_at
+INSERT INTO events (id, user_id, title, description, start_at, end_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, user_id, title, description, start_at, end_at, created_at, updated_at
 `
 
 type CreateEventParams struct {
 	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
 	Title       string             `json:"title"`
 	Description string             `json:"description"`
 	StartAt     pgtype.Timestamptz `json:"start_at"`
 	EndAt       pgtype.Timestamptz `json:"end_at"`
 }
 
-func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error) {
+type CreateEventRow struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	StartAt     pgtype.Timestamptz `json:"start_at"`
+	EndAt       pgtype.Timestamptz `json:"end_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (CreateEventRow, error) {
 	row := q.db.QueryRow(ctx, createEvent,
 		arg.ID,
+		arg.UserID,
 		arg.Title,
 		arg.Description,
 		arg.StartAt,
 		arg.EndAt,
 	)
-	var i Event
+	var i CreateEventRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Title,
 		&i.Description,
 		&i.StartAt,
@@ -57,16 +71,28 @@ func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 }
 
 const getEvent = `-- name: GetEvent :one
-SELECT id, title, description, start_at, end_at, created_at, updated_at
+SELECT id, user_id, title, description, start_at, end_at, created_at, updated_at
 FROM events
 WHERE id = $1
 `
 
-func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
+type GetEventRow struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	StartAt     pgtype.Timestamptz `json:"start_at"`
+	EndAt       pgtype.Timestamptz `json:"end_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (GetEventRow, error) {
 	row := q.db.QueryRow(ctx, getEvent, id)
-	var i Event
+	var i GetEventRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Title,
 		&i.Description,
 		&i.StartAt,
@@ -77,23 +103,36 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 	return i, err
 }
 
-const listEvents = `-- name: ListEvents :many
-SELECT id, title, description, start_at, end_at, created_at, updated_at
+const listEventsByUser = `-- name: ListEventsByUser :many
+SELECT id, user_id, title, description, start_at, end_at, created_at, updated_at
 FROM events
+WHERE user_id = $1
 ORDER BY start_at
 `
 
-func (q *Queries) ListEvents(ctx context.Context) ([]Event, error) {
-	rows, err := q.db.Query(ctx, listEvents)
+type ListEventsByUserRow struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	StartAt     pgtype.Timestamptz `json:"start_at"`
+	EndAt       pgtype.Timestamptz `json:"end_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ListEventsByUser(ctx context.Context, userID uuid.UUID) ([]ListEventsByUserRow, error) {
+	rows, err := q.db.Query(ctx, listEventsByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Event
+	var items []ListEventsByUserRow
 	for rows.Next() {
-		var i Event
+		var i ListEventsByUserRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.UserID,
 			&i.Title,
 			&i.Description,
 			&i.StartAt,
@@ -115,7 +154,7 @@ const updateEvent = `-- name: UpdateEvent :one
 UPDATE events
 SET title = $2, description = $3, start_at = $4, end_at = $5, updated_at = NOW()
 WHERE id = $1
-RETURNING id, title, description, start_at, end_at, created_at, updated_at
+RETURNING id, user_id, title, description, start_at, end_at, created_at, updated_at
 `
 
 type UpdateEventParams struct {
@@ -126,7 +165,18 @@ type UpdateEventParams struct {
 	EndAt       pgtype.Timestamptz `json:"end_at"`
 }
 
-func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error) {
+type UpdateEventRow struct {
+	ID          uuid.UUID          `json:"id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	Title       string             `json:"title"`
+	Description string             `json:"description"`
+	StartAt     pgtype.Timestamptz `json:"start_at"`
+	EndAt       pgtype.Timestamptz `json:"end_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (UpdateEventRow, error) {
 	row := q.db.QueryRow(ctx, updateEvent,
 		arg.ID,
 		arg.Title,
@@ -134,9 +184,10 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.StartAt,
 		arg.EndAt,
 	)
-	var i Event
+	var i UpdateEventRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
 		&i.Title,
 		&i.Description,
 		&i.StartAt,

@@ -28,17 +28,35 @@ func (r *EventRepository) FindByID(ctx context.Context, id uuid.UUID) (*domain.E
 		}
 		return nil, err
 	}
-	return toDomain(row), nil
+	return &domain.Event{
+		ID:          row.ID,
+		UserID:      row.UserID,
+		Title:       row.Title,
+		Description: row.Description,
+		StartAt:     row.StartAt.Time,
+		EndAt:       row.EndAt.Time,
+		CreatedAt:   row.CreatedAt.Time,
+		UpdatedAt:   row.UpdatedAt.Time,
+	}, nil
 }
 
-func (r *EventRepository) FindAll(ctx context.Context) ([]*domain.Event, error) {
-	rows, err := r.queries.ListEvents(ctx)
+func (r *EventRepository) FindAllByUser(ctx context.Context, userID uuid.UUID) ([]*domain.Event, error) {
+	rows, err := r.queries.ListEventsByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 	events := make([]*domain.Event, len(rows))
 	for i, row := range rows {
-		events[i] = toDomain(row)
+		events[i] = &domain.Event{
+			ID:          row.ID,
+			UserID:      row.UserID,
+			Title:       row.Title,
+			Description: row.Description,
+			StartAt:     row.StartAt.Time,
+			EndAt:       row.EndAt.Time,
+			CreatedAt:   row.CreatedAt.Time,
+			UpdatedAt:   row.UpdatedAt.Time,
+		}
 	}
 	return events, nil
 }
@@ -46,6 +64,7 @@ func (r *EventRepository) FindAll(ctx context.Context) ([]*domain.Event, error) 
 func (r *EventRepository) Save(ctx context.Context, ev *domain.Event) error {
 	_, err := r.queries.CreateEvent(ctx, db.CreateEventParams{
 		ID:          ev.ID,
+		UserID:      ev.UserID,
 		Title:       ev.Title,
 		Description: ev.Description,
 		StartAt:     pgtype.Timestamptz{Time: ev.StartAt, Valid: true},
@@ -67,16 +86,4 @@ func (r *EventRepository) Update(ctx context.Context, ev *domain.Event) error {
 
 func (r *EventRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.queries.DeleteEvent(ctx, id)
-}
-
-func toDomain(row db.Event) *domain.Event {
-	return &domain.Event{
-		ID:          row.ID,
-		Title:       row.Title,
-		Description: row.Description,
-		StartAt:     row.StartAt.Time,
-		EndAt:       row.EndAt.Time,
-		CreatedAt:   row.CreatedAt.Time,
-		UpdatedAt:   row.UpdatedAt.Time,
-	}
 }

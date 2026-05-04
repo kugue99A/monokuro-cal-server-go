@@ -18,7 +18,14 @@ func NewEventHandler(uc *eventusecase.Usecase) *EventHandler {
 	return &EventHandler{usecase: uc}
 }
 
-type eventRequest struct {
+type eventCreateRequest struct {
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	StartAt     time.Time `json:"start_at"`
+	EndAt       time.Time `json:"end_at"`
+}
+
+type eventUpdateRequest struct {
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	StartAt     time.Time `json:"start_at"`
@@ -27,6 +34,7 @@ type eventRequest struct {
 
 type eventResponse struct {
 	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
 	StartAt     time.Time `json:"start_at"`
@@ -35,9 +43,10 @@ type eventResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-func toResponse(ev *domain.Event) eventResponse {
+func toEventResponse(ev *domain.Event) eventResponse {
 	return eventResponse{
 		ID:          ev.ID.String(),
+		UserID:      ev.UserID.String(),
 		Title:       ev.Title,
 		Description: ev.Description,
 		StartAt:     ev.StartAt,
@@ -59,27 +68,36 @@ func (h *EventHandler) GetEvent(c echo.Context) error {
 		}
 		return echo.ErrInternalServerError
 	}
-	return c.JSON(http.StatusOK, toResponse(ev))
+	return c.JSON(http.StatusOK, toEventResponse(ev))
 }
 
 func (h *EventHandler) ListEvents(c echo.Context) error {
-	events, err := h.usecase.ListEvents(c.Request().Context())
+	userID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+	events, err := h.usecase.ListEventsByUser(c.Request().Context(), userID)
 	if err != nil {
 		return echo.ErrInternalServerError
 	}
 	res := make([]eventResponse, len(events))
 	for i, ev := range events {
-		res[i] = toResponse(ev)
+		res[i] = toEventResponse(ev)
 	}
 	return c.JSON(http.StatusOK, res)
 }
 
 func (h *EventHandler) CreateEvent(c echo.Context) error {
-	var req eventRequest
+	userID, err := uuid.Parse(c.Param("user_id"))
+	if err != nil {
+		return echo.ErrBadRequest
+	}
+	var req eventCreateRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.ErrBadRequest
 	}
 	ev, err := h.usecase.CreateEvent(c.Request().Context(), eventusecase.CreateInput{
+		UserID:      userID,
 		Title:       req.Title,
 		Description: req.Description,
 		StartAt:     req.StartAt,
@@ -88,7 +106,7 @@ func (h *EventHandler) CreateEvent(c echo.Context) error {
 	if err != nil {
 		return echo.ErrBadRequest
 	}
-	return c.JSON(http.StatusCreated, toResponse(ev))
+	return c.JSON(http.StatusCreated, toEventResponse(ev))
 }
 
 func (h *EventHandler) UpdateEvent(c echo.Context) error {
@@ -96,7 +114,7 @@ func (h *EventHandler) UpdateEvent(c echo.Context) error {
 	if err != nil {
 		return echo.ErrBadRequest
 	}
-	var req eventRequest
+	var req eventUpdateRequest
 	if err := c.Bind(&req); err != nil {
 		return echo.ErrBadRequest
 	}
@@ -112,7 +130,7 @@ func (h *EventHandler) UpdateEvent(c echo.Context) error {
 		}
 		return echo.ErrBadRequest
 	}
-	return c.JSON(http.StatusOK, toResponse(ev))
+	return c.JSON(http.StatusOK, toEventResponse(ev))
 }
 
 func (h *EventHandler) DeleteEvent(c echo.Context) error {
